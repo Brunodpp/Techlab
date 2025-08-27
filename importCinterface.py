@@ -9,7 +9,7 @@ def criar_tabela(conn, df, table_name):
     try:
         cursor = conn.cursor()
         cols = df.columns
-        col_definitions = [f'"{col}" VARCHAR(10000)' for col in cols]
+        col_definitions = [f'"{col}" VARCHAR(15000)' for col in cols]
         create_table_query = f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
             {', '.join(col_definitions)}
@@ -26,6 +26,7 @@ def criar_tabela(conn, df, table_name):
             conn.rollback()
 
 def importador(csv_file, table_name, db_params):
+    problematic_rows = []
     try:
         df = pd.read_csv(csv_file)
         messagebox.showinfo("Status", "CSV lido com sucesso.")
@@ -51,6 +52,7 @@ def importador(csv_file, table_name, db_params):
                 cursor.execute(insert_query, tuple(row))
             except Exception as e:
                 print(f"Linha problemática: {row.values}")
+                problematic_rows.append(row)
                 conn.rollback()
                 continue
         
@@ -63,6 +65,20 @@ def importador(csv_file, table_name, db_params):
         messagebox.showerror("Erro", f"Arquivo '{csv_file}' não encontrado.")
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
+    finally:
+       
+        if problematic_rows:
+            
+            df_problematic = pd.DataFrame(problematic_rows, columns=df.columns)
+            output_csv_file = csv_file.replace(".csv", "_linhas_com_erro.csv")
+            df_problematic.to_csv(output_csv_file, index=False)
+
+            messagebox.showwarning(
+                "Linhas com Erro", 
+                f"Foram encontradas e salvas {len(problematic_rows)} linhas com erro no arquivo:\n{output_csv_file}"
+            )
+        else:
+            messagebox.showinfo("Tudo Certo", "Nenhuma linha problemática encontrada. Importação perfeita!")
 
 import tkinter as tk
 from tkinter import filedialog, messagebox
