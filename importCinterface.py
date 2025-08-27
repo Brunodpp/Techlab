@@ -1,13 +1,15 @@
 import pandas as pd
 import psycopg2
 import tkinter as tk
-from tkinter import messagebox
-
+from tkinter import messagebox, filedialog
+from itertools import cycle
+from time import sleep
+import params
 def criar_tabela(conn, df, table_name):
     try:
         cursor = conn.cursor()
         cols = df.columns
-        col_definitions = [f'"{col}" VARCHAR(255)' for col in cols]
+        col_definitions = [f'"{col}" VARCHAR(10000)' for col in cols]
         create_table_query = f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
             {', '.join(col_definitions)}
@@ -62,50 +64,59 @@ def importador(csv_file, table_name, db_params):
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
 
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from itertools import cycle
+
 # Configuração da interface 
 def criar_interface():
     root = tk.Tk()
     root.title("Importador de CSV TechLab")
     root.geometry("600x400")
-   
+
+    # carrega frames do gif
+    frames = [tk.PhotoImage(file="animacao.gif", format=f"gif -index {i}") for i in range(30)]
+    frames_cycle = cycle(frames)
+
+    # Função da animação
+    def animar(widget, count=0, callback=None):
+        try:
+            frame = next(frames_cycle)
+            widget.config(image=frame, text="")
+            count += 1
+
+            if count < 45:  # número de frames
+                root.after(25, animar, widget, count, callback)
+            else:
+                widget.config(image="", text="Importar Dados")  # volta ao normal
+                if callback:
+                    callback()  # executa o que for passado depois da animação
+        except:
+            pass
 
     # Parâmetros do banco de dados
-    db_params = {
-        'host': 'localhost',
-        'database': 'postgres',
-        'user': 'postgres_admin',
-        'password': '12345'
-    }
+    db_params = params.db_params
 
-    # Funcao que sera chamada ao clicar no botao
+    # Função de importação
     def on_import_click():
-        csv_file = entry_csv.get()
-        table_name = entry_table.get()
-        if not csv_file or not table_name:
-            messagebox.showwarning("Atenção", "Por favor, preencha todos os campos.")
+        csv_file = filedialog.askopenfilename()
+
+        table_name = csv_file[csv_file.rfind("/")+1:-4:]
+        if not csv_file.endswith(".csv"):
+            messagebox.showwarning("Atenção", "Selecione um arquivo .csv.")
             return
 
         importador(csv_file, table_name, db_params)
 
-    
-    label_csv = tk.Label(root, text="Nome do Arquivo CSV:")
-    label_csv.pack(pady=5)
-    entry_csv = tk.Entry(root, width=50)
-    entry_csv.pack(pady=5)
-    
-   
-    label_table = tk.Label(root, text="Nome da Tabela:")
-    label_table.pack(pady=5)
-    entry_table = tk.Entry(root, width=50)
-    entry_table.pack(pady=5)
+    # Quando clica no botão → roda explosão → depois chama importador
+    def on_button_click():
+        animar(button_import, callback=on_import_click)
 
     # Botão de importação
-    button_import = tk.Button(root, text="Importar Dados", command=on_import_click)
+    button_import = tk.Button(root, text="Importar Dados", command=on_button_click)
     button_import.pack(pady=20)
-    
+
     root.mainloop()
-
-
 
 
 # Inicia a aplicação
