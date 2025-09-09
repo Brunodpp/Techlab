@@ -4,7 +4,9 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 from itertools import cycle
 from time import sleep
-import params
+import os
+
+
 def criar_tabela(conn, df, table_name):
     try:
         cursor = conn.cursor()
@@ -28,7 +30,15 @@ def criar_tabela(conn, df, table_name):
 def importador(csv_file, table_name, db_params):
     problematic_rows = []
     try:
-        df = pd.read_csv(csv_file)
+        df = pd.read_csv(
+            csv_file,
+            sep=None,
+            engine="python",
+            
+            encoding="UTF-8",
+    
+            )
+
         messagebox.showinfo("Status", "CSV lido com sucesso.")
         
         conn = psycopg2.connect(**db_params) 
@@ -81,7 +91,7 @@ def importador(csv_file, table_name, db_params):
             messagebox.showinfo("Tudo Certo", "Nenhuma linha problemática encontrada. Importação perfeita!")
 
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox,ttk
 from itertools import cycle
 
 # Configuração da interface 
@@ -89,6 +99,8 @@ def criar_interface():
     root = tk.Tk()
     root.title("Importador de CSV TechLab")
     root.geometry("600x400")
+    
+    
 
     # carrega frames do gif
     frames = [tk.PhotoImage(file="animacao.gif", format=f"gif -index {i}") for i in range(30)]
@@ -100,7 +112,7 @@ def criar_interface():
             frame = next(frames_cycle)
             widget.config(image=frame, text="")
             count += 1
-
+            
             if count < 45:  # número de frames
                 root.after(25, animar, widget, count, callback)
             else:
@@ -110,8 +122,25 @@ def criar_interface():
         except:
             pass
 
-    # Parâmetros do banco de dados
-    db_params = params.db_params
+    # estruturando de db params com placeholders
+    db_params = {
+        'host': 'placeholder',
+        'database': 'placeholder',
+        'user': 'placeholder',
+        'password': 'placeholder'
+    }
+    def ler_pasta():
+        try:
+            pasta=filedialog.askdirectory()
+            caminhos=[pasta+"/"+nome for nome in os.listdir(pasta)]
+            arquivos = [arq for arq in caminhos if os.path.isfile(arq)]
+            csv = [arq for arq in arquivos if arq.lower().endswith(".csv")]
+            for i in csv:
+                table_name = i[i.rfind("/")+1:-4:]
+                importador(i, table_name, db_params)
+        except FileNotFoundError:
+            messagebox.showerror("Erro", f"Pasta '{pasta}' não encontrada.")
+
 
     # Função de importação
     def on_import_click():
@@ -124,14 +153,56 @@ def criar_interface():
 
         importador(csv_file, table_name, db_params)
 
-    # Quando clica no botão → roda explosão → depois chama importador
+   
     def on_button_click():
         animar(button_import, callback=on_import_click)
-
-    # Botão de importação
-    button_import = tk.Button(root, text="Importar Dados", command=on_button_click)
+    #funcao para setar o db
+    def setdb():
+        db_params['host']=entry_host.get()
+        db_params['database']=entry_db.get()
+        db_params['user']=entry_user.get()
+        db_params['password']=entry_pw.get()
+        messagebox.showinfo("Status", "Configurações salvas com sucesso.")
+    teste=ttk.Notebook(root)
+    teste.place(x=0,y=0,width=600,height=400)
+    #aba 1 Importador
+    aba1=tk.Frame(teste)
+    teste.add(aba1,text="Importar")
+    button_import = tk.Button(aba1, text="Importar Arquivo", command=on_button_click)
     button_import.pack(pady=20)
+    button_importp = tk.Button(aba1, text="Importar Pasta", command=ler_pasta)
+    button_importp.pack(pady=20)
+    #aba 2 db config
+    aba2=tk.Frame(teste)
+    teste.add(aba2,text="Config")
+    label_host = tk.Label(aba2, text="Nome do host:")
+    label_host.pack(pady=5)
+    entry_host = tk.Entry(aba2, width=50)
+    entry_host.pack(pady=5)
+    
+   
+    label_db = tk.Label(aba2, text="Nome da Base de Dados:")
+    label_db.pack(pady=5)
+    entry_db = tk.Entry(aba2, width=50)
+    entry_db.pack(pady=5)
 
+    label_user = tk.Label(aba2, text="Nome de Usuário:")
+    label_user.pack(pady=5)
+    entry_user = tk.Entry(aba2, width=50)
+    entry_user.pack(pady=5)
+
+    label_pw = tk.Label(aba2, text="Senha:")
+    label_pw.pack(pady=5)
+    entry_pw = tk.Entry(aba2, width=50)
+    entry_pw.pack(pady=5)
+
+    button_db = tk.Button(aba2, text="Salvar", command=setdb)
+    button_db.pack(pady=20)
+    
+    
+    
+    
+    
     root.mainloop()
 
 
