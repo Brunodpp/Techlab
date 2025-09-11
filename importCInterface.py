@@ -5,13 +5,22 @@ from tkinter import messagebox, filedialog
 from itertools import cycle
 from time import sleep
 import os
-
-
+#funcao switch para tipos
+def sw(tipo):
+    switcher={
+        'int64': 'INT',
+        'float64': 'FLOAT',
+        'object': 'VARCHAR(1000)',
+        'bool': 'BOOLEAN',
+        'datetime64[ns]': 'TIMESTAMP'
+    }
+    return switcher.get(tipo, 'VARCHAR(1000)')
 def criar_tabela(conn, df, table_name):
     try:
         cursor = conn.cursor()
+        tipos = df.dtypes
         cols = df.columns
-        col_definitions = [f'"{col}" VARCHAR(15000)' for col in cols]
+        col_definitions = [f'"{cols[col]}" {sw(str(tipos.iloc[col]))}' for col in range(len(cols))]
         create_table_query = f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
             {', '.join(col_definitions)}
@@ -102,25 +111,7 @@ def criar_interface():
     
     
 
-    # carrega frames do gif
-    frames = [tk.PhotoImage(file="animacao.gif", format=f"gif -index {i}") for i in range(30)]
-    frames_cycle = cycle(frames)
-
-    # Função da animação
-    def animar(widget, count=0, callback=None):
-        try:
-            frame = next(frames_cycle)
-            widget.config(image=frame, text="")
-            count += 1
-            
-            if count < 45:  # número de frames
-                root.after(25, animar, widget, count, callback)
-            else:
-                widget.config(image="", text="Importar Dados")  # volta ao normal
-                if callback:
-                    callback()  # executa o que for passado depois da animação
-        except:
-            pass
+   
 
     # estruturando de db params com placeholders
     db_params = {
@@ -154,8 +145,7 @@ def criar_interface():
         importador(csv_file, table_name, db_params)
 
    
-    def on_button_click():
-        animar(button_import, callback=on_import_click)
+
     #funcao para setar o db
     def setdb():
         db_params['host']=entry_host.get()
@@ -168,7 +158,7 @@ def criar_interface():
     #aba 1 Importador
     aba1=tk.Frame(teste)
     teste.add(aba1,text="Importar")
-    button_import = tk.Button(aba1, text="Importar Arquivo", command=on_button_click)
+    button_import = tk.Button(aba1, text="Importar Arquivo", command=on_import_click)
     button_import.pack(pady=20)
     button_importp = tk.Button(aba1, text="Importar Pasta", command=ler_pasta)
     button_importp.pack(pady=20)
