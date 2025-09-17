@@ -6,11 +6,15 @@ from itertools import cycle
 from time import sleep
 import os
 #funcao switch para tipos
-def sw(tipo):
+def sw(tipo,coluna,df):
+    max_len=1000
+    if tipo == 'object':
+        tamanho = df[coluna].str.len()
+        max_len = int(tamanho.max())
     switcher={
         'int64': 'INT',
         'float64': 'FLOAT',
-        'object': 'VARCHAR(1000)',
+        'object': f'VARCHAR({max_len})',
         'bool': 'BOOLEAN',
         'datetime64[ns]': 'TIMESTAMP'
     }
@@ -20,7 +24,7 @@ def criar_tabela(conn, df, table_name):
         cursor = conn.cursor()
         tipos = df.dtypes
         cols = df.columns
-        col_definitions = [f'"{cols[col]}" {sw(str(tipos.iloc[col]))}' for col in range(len(cols))]
+        col_definitions = [f'"{cols[col]}" {sw(str(tipos.iloc[col]),cols[col],df)}' for col in range(len(cols))]
         create_table_query = f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
             {', '.join(col_definitions)}
